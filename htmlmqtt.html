@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8"> 
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+	
+</head>
+
+
+
+<style>
+
+
+</style>
+<script>
+// viết hàm javascript => phục vụ sự kiện xảy ra khi mình tương , nhận dữ liệu 
+
+var checkjson = false;
+
+
+var hostname = "mqtt.ngoinhaiot.com";
+
+var port = 2222;
+
+var clientId = "Web";
+
+clientId += new Date().getUTCMilliseconds();
+
+var user_mqtt = "toannv10291";
+
+var pass_mqtt = "toannv10291";
+
+var topicpub = "toannv10291/quat";
+
+var topicsub = "toannv10291/maylanh"; 
+
+mqttClient = new Paho.MQTT.Client(hostname, port, clientId);  // khai báo kết nối mqtt
+mqttClient.onMessageArrived = MessageArrived; // nhận dữ liệu
+mqttClient.onConnectionLost = ConnectionLost; // kiểm tra kết nối 
+Connect();
+
+function Connect(){
+	mqttClient.connect({
+	useSSL: false,
+	userName: user_mqtt,
+	password: pass_mqtt,
+	onSuccess: Connected,
+	onFailure: ConnectionFailed,
+	keepAliveInterval: 10,
+	});
+}
+
+function Connected() 
+{
+	console.log("Connected to mqtt.ngoinhaiot.com");
+	mqttClient.subscribe(topicsub);
+}
+
+function ConnectionFailed(res) 
+{
+	console.log("Connect failed:" + res.errorMessage);
+}
+
+function ConnectionLost(res) 
+{
+	if (res.errorCode !== 0) 
+	{
+		console.log("Connection lost:" + res.errorMessage);
+		Connect();
+	}
+}
+
+function MessageArrived(message) 
+{
+	console.log("Data STM-ESP :" + message.payloadString);
+	//{"ND":"1766","DA":"3532","TB1":"0","TB2":"0","C1":"1000","C2":"300"}
+	
+	// Kiểm tra JSON đó  lỗi ko ??
+	
+	// nếu ko lỗi thì xử lý  => hiển thị đúng vị trí trên giao diện mình thiết kế
+	
+	IsJsonString(message.payloadString);
+	
+    if(checkjson)
+	{
+	  console.log("JSON OK!!!");
+	  var DataVDK = message.payloadString;
+	  
+	  var DataJson = JSON.parse(DataVDK); 
+	   //DataJson {"ND":"1766","DA":"3532","TB1":"0","TB2":"0","C1":"1000","C2":"300"}
+	   
+	   
+	   //DataJson.ND
+	   console.log("Nhiệt độ: " + DataJson.ND);
+	   
+	   if(DataJson.ND != null)
+	   {
+			document.getElementById("nhietdo").innerHTML = DataJson.ND;
+	   }
+	   
+	   if(DataJson.DA != null)
+	   {
+			document.getElementById("doam").innerHTML = DataJson.DA;
+	   }
+	   
+	   if(DataJson.C1 != null)
+	   {
+			document.getElementById("C1").innerHTML = DataJson.C1;
+	   }
+	   
+	   if(DataJson.C2 != null)
+	   {
+			document.getElementById("C2").innerHTML = DataJson.C2;
+	   }
+	   
+	   if(DataJson.TB1 != null)
+	   {
+			if(DataJson.TB1 ==  "0")
+			{
+				document.getElementById("trangthaiden").innerHTML = "OFF";
+			}
+			else if(DataJson.TB1 ==  "1")
+			{
+				document.getElementById("trangthaiden").innerHTML = "ON";
+			}
+			
+	   }
+	   
+	   if(DataJson.TB2 != null)
+	   {
+			if(DataJson.TB2 ==  "0")
+			{
+				document.getElementById("trangthaiquat").innerHTML = "OFF";
+			}
+			else if(DataJson.TB2 ==  "1")
+			{
+				document.getElementById("trangthaiquat").innerHTML = "ON";
+			}
+			
+	   }
+	   
+	   
+	   
+	   
+	   
+	   
+	  
+	   
+	   
+	   
+	  
+	}
+	else
+	{
+		console.log("JSON Error!!!");
+	}
+	
+	
+}
+
+function IsJsonString(str)
+			{
+				try
+				{
+					JSON.parse(str);
+				} 
+				catch (e)
+				{
+					checkjson = false;
+					return false;
+				}
+				checkjson = true;
+				return true;
+			}
+
+
+//rtsp://admin:Aa123456@192.168.1.214:554/onvif1
+
+function DEN()
+{
+	console.log("Button đèn onclick!!!");
+	var trangthai = document.getElementById("trangthaiden").innerHTML;
+	
+	console.log("trangthai đèn: " + trangthai);
+	
+	if(hengio == 1)
+	{
+		if(trangthai == "ON")
+	{
+	   // {"TB1":"0"} => OFF
+	   //{"TB1":"1"} => ON
+	  // gửi OFF
+	  // dữ liệu 
+	  
+	  var DataSend = "{\"TB1\":\"0\"}"; 
+	  mqttClient.send(topicpub, DataSend);
+	  
+	}
+	else if(trangthai == "OFF")
+	{
+		// ON
+		
+		 var DataSend = "{\"TB1\":\"1\"}"; 
+	  mqttClient.send(topicpub, DataSend);
+	}
+	}
+	
+	
+	
+	
+}
+
+function QUAT()
+{
+	console.log("Button QUẠT onclick!!!");
+	
+	var trangthai = document.getElementById("trangthaiquat").innerHTML;
+	
+	console.log("trangthai đèn: " + trangthai);
+	
+	if(trangthai == "ON")
+	{
+	   // {"TB1":"0"} => OFF
+	   //{"TB1":"1"} => ON
+	  // gửi OFF
+	  // dữ liệu 
+	  
+	  var DataSend = "{\"TB2\":\"0\"}"; 
+	  mqttClient.send(topicpub, DataSend);
+	  
+	}
+	else if(trangthai == "OFF")
+	{
+		// ON
+		
+		 var DataSend = "{\"TB2\":\"1\"}"; 
+	  mqttClient.send(topicpub, DataSend);
+	}
+}
+
+function SendC1()
+{
+	var TX = document.getElementById("textC1").value;
+	
+	 var DataSend = "{\"C1\":\""+TX+"\"}"; 
+	 
+	 console.log("DataSend:!!!"+ DataSend);
+	 
+	 
+	 mqttClient.send(topicpub, DataSend);
+}
+
+function SendC2()
+{
+
+	var TX = document.getElementById("textC2").value;
+	
+	 var DataSend = "{\"C2\":\""+TX+"\"}"; 
+	 
+	 mqttClient.send(topicpub, DataSend);
+}
+
+</script>
+
+
+
+<body>
+
+<h1>Viết giao diện</h1>
+
+<button onclick = "DEN()">ĐÈN!</button>
+
+</br>
+</br>
+
+<button onclick = "QUAT()">QUẠT!</button>
+</br>
+</br>
+
+<input id="textC1"></input>
+<button onclick = "SendC1()">SEND C1</button>
+
+</br>
+</br>
+<input id="textC2"></input>
+<button onclick = "SendC2()">SEND C2</button>
+
+<h1>
+NHIỆT ĐỘ:
+<label id="nhietdo">0</label>
+</h1>
+
+<h1>
+ĐỘ ẨM:
+<label id="doam">0</label>
+</h1>
+
+<h1>
+CÀI ĐẶT 1:
+<label id="C1">0</label>
+</h1>
+
+<h1>
+CÀI ĐẶT 2:
+<label id="C2">0</label>
+</h1>
+
+<h1>
+TRẠNG THÁI ĐÈN:
+<label id="trangthaiden">OFF</label>
+</h1>
+
+
+<h1>
+TRẠNG THÁI QUẠT:
+<label id="trangthaiquat">OFF</label>
+</h1>
+
+ 
+</body>
+</html>
